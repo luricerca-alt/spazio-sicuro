@@ -5,47 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ORACLE SAFE HUB</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; padding: 15px; margin: 0; }
-        .box { border: 2px solid #0f0; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; background: #050505; }
-        #launch-msg { color: #ff0; font-weight: bold; animation: blink 1s infinite; }
+        body { background: #000; color: #0f0; font-family: monospace; padding: 15px; margin: 0; overflow-x: hidden; }
+        .box { border: 2px solid #0f0; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; background: #050505; box-shadow: 0 0 15px #0f0; }
+        #launch-msg { color: #ff0; font-weight: bold; animation: blink 1s infinite; margin: 10px 0; font-size: 14px; }
         @keyframes blink { 50% { opacity: 0; } }
-        .log-sec { border: 1px solid #333; margin-top: 10px; border-radius: 5px; }
-        .entry { padding: 8px; border-bottom: 1px solid #111; font-size: 11px; display: flex; justify-content: space-between; }
-        .type-tag { padding: 2px 5px; border-radius: 3px; font-size: 9px; color: #000; font-weight: bold; }
+        .section { margin-bottom: 25px; border: 1px solid #333; border-radius: 5px; background: #080808; }
+        .sec-title { background: #111; color: #fff; padding: 6px 12px; font-size: 11px; border-bottom: 1px solid #0f0; display: flex; justify-content: space-between; }
+        .entry { padding: 8px 12px; border-bottom: 1px solid #111; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+        .timestamp { color: #555; font-size: 9px; margin-right: 8px; }
+        .type-tag { padding: 2px 6px; border-radius: 3px; font-size: 9px; color: #000; font-weight: bold; text-transform: uppercase; }
+        button.clear-btn { background: #f00; color: #fff; border: none; padding: 10px; cursor: pointer; font-family: monospace; width: 100%; border-radius: 5px; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h2 style="margin:0">ORACLE TERMINAL</h2>
-        <div id="launch-msg">⚠ ATTESA ATTIVAZIONE SENSORI ⚠</div>
+        <h2 style="margin:0">ORACLE COMMAND CENTER</h2>
+        <div id="launch-msg">⚠ RILANCIA IL SEGNALIBRO SULLA PAGINA ⚠</div>
+        <button class="clear-btn" onclick="clearData()">CANCELLA DATABASE LOCALE</button>
     </div>
-    <div id="logs-container" class="log-sec"></div>
+    <div id="logs-container"></div>
+
     <script>
         window.addEventListener('message', function(e) {
             if(e.data.action === 'active') {
-                var m = document.getElementById('launch-msg');
-                m.innerHTML = "✅ AMBIENTE SICURO ATTIVO";
+                const m = document.getElementById('launch-msg');
+                m.innerHTML = "✅ AMBIENTE HTTPS PROTETTO ATTIVO";
                 m.style.animation = "none"; m.style.color = "#0f0";
             }
             if(e.data.action === 'save_log') {
-                var logs = JSON.parse(localStorage.getItem('eye_logs') || '[]');
+                const logs = JSON.parse(localStorage.getItem('eye_logs') || '[]');
                 logs.push({ time: new Date().toISOString(), type: e.data.type, msg: e.data.msg });
-                localStorage.setItem('eye_logs', JSON.stringify(logs.slice(-100)));
+                localStorage.setItem('eye_logs', JSON.stringify(logs.slice(-200)));
                 render();
             }
         });
+
         function render() {
-            var logs = JSON.parse(localStorage.getItem('eye_logs') || '[]');
-            var container = document.getElementById('logs-container');
+            const logs = JSON.parse(localStorage.getItem('eye_logs') || '[]');
+            const container = document.getElementById('logs-container');
             container.innerHTML = '';
-            logs.reverse().forEach(function(log) {
-                var div = document.createElement('div');
-                div.className = 'entry';
-                var color = log.type === 'ALERT' ? '#f00' : '#0f0';
-                div.innerHTML = `<span>[${new Date(log.time).toLocaleTimeString()}] ${log.msg}</span><span class="type-tag" style="background:${color}">${log.type}</span>`;
-                container.appendChild(div);
+            const colors = { EMF: '#ff0', IOT: '#d0f', NET: '#0af', SCAN: '#0f0', AUDIT: '#fff' };
+            
+            const groups = logs.reduce((acc, log) => {
+                const date = new Date(log.time).toLocaleDateString();
+                if (!acc[date]) acc[date] = [];
+                acc[date].push(log);
+                return acc;
+            }, {});
+
+            Object.keys(groups).reverse().forEach(date => {
+                const sec = document.createElement('div');
+                sec.className = 'section';
+                sec.innerHTML = `<div class="sec-title">SESSIONE: ${date}</div>`;
+                groups[date].reverse().forEach(entry => {
+                    const div = document.createElement('div');
+                    div.className = 'entry';
+                    div.innerHTML = `<span><span class="timestamp">[${new Date(entry.time).toLocaleTimeString()}]</span> ${entry.msg}</span><span class="type-tag" style="background:${colors[entry.type]||'#aaa'}">${entry.type}</span>`;
+                    sec.appendChild(div);
+                });
+                container.appendChild(sec);
             });
         }
+        function clearData() { if(confirm('Eliminare cronologia?')) { localStorage.removeItem('eye_logs'); render(); } }
         render();
     </script>
 </body>
