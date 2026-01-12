@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORACLE SAFE HUB</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; padding: 15px; margin: 0; }
+        .box { border: 2px solid #0f0; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; background: #050505; }
+        #launch-msg { color: #ff0; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .log-sec { border: 1px solid #333; margin-top: 10px; border-radius: 5px; }
+        .entry { padding: 8px; border-bottom: 1px solid #111; font-size: 11px; display: flex; justify-content: space-between; }
+        .type-tag { padding: 2px 5px; border-radius: 3px; font-size: 9px; color: #000; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2 style="margin:0">ORACLE TERMINAL</h2>
+        <div id="launch-msg">⚠ ATTESA ATTIVAZIONE SENSORI ⚠</div>
+    </div>
+    <div id="logs-container" class="log-sec"></div>
+    <script>
+        window.addEventListener('message', function(e) {
+            if(e.data.action === 'active') {
+                var m = document.getElementById('launch-msg');
+                m.innerHTML = "✅ AMBIENTE SICURO ATTIVO";
+                m.style.animation = "none"; m.style.color = "#0f0";
+            }
+            if(e.data.action === 'save_log') {
+                var logs = JSON.parse(localStorage.getItem('eye_logs') || '[]');
+                logs.push({ time: new Date().toISOString(), type: e.data.type, msg: e.data.msg });
+                localStorage.setItem('eye_logs', JSON.stringify(logs.slice(-100)));
+                render();
+            }
+        });
+        function render() {
+            var logs = JSON.parse(localStorage.getItem('eye_logs') || '[]');
+            var container = document.getElementById('logs-container');
+            container.innerHTML = '';
+            logs.reverse().forEach(function(log) {
+                var div = document.createElement('div');
+                div.className = 'entry';
+                var color = log.type === 'ALERT' ? '#f00' : '#0f0';
+                div.innerHTML = `<span>[${new Date(log.time).toLocaleTimeString()}] ${log.msg}</span><span class="type-tag" style="background:${color}">${log.type}</span>`;
+                container.appendChild(div);
+            });
+        }
+        render();
+    </script>
+</body>
+</html>
